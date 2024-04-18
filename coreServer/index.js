@@ -49,7 +49,9 @@ function setState() {
             inputs: [true, true, true],
             atem: '10.16.12.41',
             casparCG: '10.16.12.21',
-            stingerPlayer: 'html' // 'html' | 'casparCG'
+            stingerPlayer: 'html', // 'html' | 'casparCG',
+            atemEnabled: false,
+            casparCGEnabled: false
         },
         connections: {
             replay: false,
@@ -109,18 +111,19 @@ wss.on('connection', ws => {
             case 'cutWithStinger':
                 switch (state.settings.stingerPlayer) {
                     case 'casparCG':
-                        casparCG.play(1, 20, 'stinger').then((data) => {
-                            setTimeout(async () => {
-                                const out = state.atem.program == state.settings.replayAtemInput;
-                                await atem.cut();
-                                if (out) {
-                                    atem.changePreviewInput(5);
-                                    sendReplayAction('resetPlaybackOffset');
-                                }
-                            }, 1200);
-                        });
-                        break;
-
+                        if(state.settings.casparCGEnabled) {
+                            casparCG.play(1, 20, 'stinger').then((data) => {
+                                setTimeout(async () => {
+                                    const out = state.atem.program == state.settings.replayAtemInput;
+                                    await atem.cut();
+                                    if (out) {
+                                        atem.changePreviewInput(5);
+                                        sendReplayAction('resetPlaybackOffset');
+                                    }
+                                }, 1200);
+                            });
+                            break;
+                        }
                     case 'html':
                         const out = state.atem.program == state.settings.replayAtemInput;
                         
@@ -150,12 +153,12 @@ wss.on('connection', ws => {
                 break;
             
             case 'updateSettings':
-                if (data.casparCG && data.casparCG !== state.settings.casparCG) {
+                if (state.settings.casparCGEnabled && data.casparCG && data.casparCG !== state.settings.casparCG) {
                     state.settings.casparCG = data.casparCG;
                     connectCasparCG();
                 }
 
-                if (data.atem && data.atem !== state.settings.atem) {
+                if (state.settings.atemEnabled && data.atem && data.atem !== state.settings.atem) {
                     state.settings.atem = data.atem;
                     connectAtem();
                 }
